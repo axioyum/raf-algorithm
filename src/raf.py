@@ -1,7 +1,8 @@
-from dataclasses import dataclass
-import networkx as nx
 from collections import defaultdict
+from dataclasses import dataclass
+
 import matplotlib.pyplot as plt
+import networkx as nx
 
 
 @dataclass(frozen=True)
@@ -13,15 +14,15 @@ class Reaction:
 
 def initialize():
     # case 1: RAF sample from Hordijk & Steel 2004.
-    # F = {"a", "b"}
-    # r1 = Reaction(name="r1", reactants=frozenset(["a", "b"]), products=frozenset(["c"]))
-    # r2 = Reaction(name="r2", reactants=frozenset(["b", "c"]), products=frozenset(["d"]))
-    # r3 = Reaction(
-    #     name="r3", reactants=frozenset(["c", "d"]), products=frozenset(["e", "f"])
-    # )
-    # r4 = Reaction(name="r4", reactants=frozenset(["a", "e"]), products=frozenset(["g"]))
-    # R = {r1, r2, r3, r4}
-    # C = {("d", r1), ("a", r2), ("f", r4)}
+    F = {"a", "b"}
+    r1 = Reaction(name="r1", reactants=frozenset(["a", "b"]), products=frozenset(["c"]))
+    r2 = Reaction(name="r2", reactants=frozenset(["b", "c"]), products=frozenset(["d"]))
+    r3 = Reaction(
+        name="r3", reactants=frozenset(["c", "d"]), products=frozenset(["e", "f"])
+    )
+    r4 = Reaction(name="r4", reactants=frozenset(["a", "e"]), products=frozenset(["g"]))
+    R = {r1, r2, r3, r4}
+    C = {("d", r1), ("a", r2), ("f", r4)}
 
     # case 2: a reaction set is RA, but not F-generated.
     # F = {"a", "b"}
@@ -32,15 +33,15 @@ def initialize():
     # C = {("c", r1), ("a", r2), ("b", r3)}
 
     # case 3: removing a catalysts "d" from case 1.
-    F = {"a", "b"}
-    r1 = Reaction(name="r1", reactants=frozenset(["a", "b"]), products=frozenset(["c"]))
-    r2 = Reaction(name="r2", reactants=frozenset(["b", "c"]), products=frozenset(["d"]))
-    r3 = Reaction(
-        name="r3", reactants=frozenset(["c", "d"]), products=frozenset(["e", "f"])
-    )
-    r4 = Reaction(name="r4", reactants=frozenset(["a", "e"]), products=frozenset(["g"]))
-    R = {r1, r2, r3, r4}
-    C = {("a", r2), ("f", r4)}
+    # F = {"a", "b"}
+    # r1 = Reaction(name="r1", reactants=frozenset(["a", "b"]), products=frozenset(["c"]))
+    # r2 = Reaction(name="r2", reactants=frozenset(["b", "c"]), products=frozenset(["d"]))
+    # r3 = Reaction(
+    #     name="r3", reactants=frozenset(["c", "d"]), products=frozenset(["e", "f"])
+    # )
+    # r4 = Reaction(name="r4", reactants=frozenset(["a", "e"]), products=frozenset(["g"]))
+    # R = {r1, r2, r3, r4}
+    # C = {("a", r2), ("f", r4)}
 
     display_graph(F, R, C)
     while True:
@@ -59,27 +60,27 @@ def display_graph(F, R, C):
     G = nx.DiGraph()
 
     # add Food as nodes.
-    for food in F:
+    for food in sorted(F):
         G.add_node(food, color="pink", type="molecule", is_food=True)
 
     # add remaining molecules as nodes.
     supp_R = {m for r in R for m in r.reactants | r.products}
     target_molecules = supp_R - F
-    for molecule in target_molecules:
+    for molecule in sorted(target_molecules):
         G.add_node(molecule, color="cyan", type="molecule", is_food=False)
 
     # add reactions.
     catalysts_by_reaction = defaultdict(set)
     for x, reaction in C:
         catalysts_by_reaction[reaction].add(x)
-    for r in R:
+    for r in sorted(R, key=lambda r: r.name):
         G.add_node(r, color="orange", type="reaction")
-        for reactant in r.reactants:
+        for reactant in sorted(r.reactants):
             G.add_edge(reactant, r, relation="reactant")
-        for product in r.products:
+        for product in sorted(r.products):
             G.add_edge(r, product, relation="reactant")
         # add catalysts.
-        for x in catalysts_by_reaction[r]:
+        for x in sorted(catalysts_by_reaction[r]):
             if not x in target_molecules | F:
                 G.add_node(x, type="molecule", color="silver")
             G.add_edge(x, r, relation="catalyst", style="dashed")
@@ -95,7 +96,7 @@ def display_graph(F, R, C):
     colors = [G.nodes[n]["color"] for n in G.nodes]
 
     # plot a NetworkX graph.
-    pos = nx.spring_layout(G, seed=42)
+    pos = nx.spring_layout(G, seed=42, k=0.5)
     reaction_edges = [
         (u, v) for u, v, d in G.edges(data=True) if d.get("style") != "dashed"
     ]
